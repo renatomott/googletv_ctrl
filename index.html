@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google TV Remote Control</title>
+
+    <!-- Google Cast SDK -->
+    <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            text-align: center;
+            padding: 20px;
+            margin: 0;
+        }
+        h1 {
+            color: #333;
+        }
+        .button {
+            display: inline-block;
+            margin: 10px;
+            padding: 15px 30px;
+            background-color: #4285f4;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .button:active {
+            background-color: #357ae8;
+        }
+        .button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Google TV Remote Control</h1>
+
+    <div>
+        <button class="button" id="power">Power On/Off</button>
+        <button class="button" id="volumeUp">Volume Up</button>
+        <button class="button" id="volumeDown">Volume Down</button>
+        <button class="button" id="inputSource">Input/Source</button>
+        <button class="button" id="assistant">Google Assistant</button>
+    </div>
+
+    <p id="status" style="color: #333;">Aguardando conexão com o Google TV...</p>
+
+    <script>
+        let castSession = null;
+
+        function initializeCastApi() {
+            console.log("Tentando inicializar Google Cast SDK...");
+
+            // Verifica se o Cast SDK está disponível
+            if (typeof cast !== 'undefined' && cast.framework) {
+                cast.framework.CastContext.getInstance().setOptions({
+                    receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID,
+                    autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED
+                });
+
+                document.getElementById('status').textContent = "Google Cast SDK carregado e pronto!";
+                console.log("Google Cast SDK inicializado com sucesso.");
+            } else {
+                document.getElementById('status').textContent = "Google Cast SDK não está disponível.";
+                console.error("Google Cast SDK não foi carregado. Tentando novamente em 5 segundos.");
+                // Tentar recarregar após 5 segundos, caso o SDK não tenha sido carregado
+                setTimeout(initializeCastApi, 5000);
+            }
+        }
+
+        // Função executada quando o Google Cast SDK está disponível
+        window['__onGCastApiAvailable'] = function(isAvailable) {
+            if (isAvailable) {
+                console.log("Google Cast API está disponível.");
+                initializeCastApi();
+            } else {
+                document.getElementById('status').textContent = "Google Cast SDK não está disponível.";
+                console.error("Google Cast SDK não está disponível.");
+            }
+        };
+
+        // Função para conectar ao dispositivo Google TV
+        function connectToDevice() {
+            console.log("Tentando conectar ao dispositivo...");
+            if (typeof chrome.cast === 'undefined') {
+                console.error("chrome.cast não está definido. O SDK pode não ter sido carregado corretamente.");
+                document.getElementById('status').textContent = "Falha ao conectar: Google Cast SDK não carregado.";
+                return;
+            }
+
+            const sessionRequest = new chrome.cast.SessionRequest(chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID);
+            const apiConfig = new chrome.cast.ApiConfig(sessionRequest, sessionListener, receiverListener);
+
+            chrome.cast.initialize(apiConfig, onInitSuccess, onError);
+        }
+
+        function sessionListener(session) {
+            castSession = session;
+            document.getElementById('status').textContent = "Conectado ao Google TV: " + session.receiver.friendlyName;
+            console.log("Conectado ao Google TV: " + session.receiver.friendlyName);
+        }
+
+        function receiverListener(availability) {
+            if (availability === chrome.cast.ReceiverAvailability.AVAILABLE) {
+                document.getElementById('status').textContent = "Dispositivo disponível para conexão.";
+            } else {
+                document.getElementById('status').textContent = "Nenhum dispositivo Google TV encontrado.";
+            }
+        }
+
+        function onInitSuccess() {
+            console.log("Google Cast SDK inicializado com sucesso.");
+        }
+
+        function onError(message) {
+            console.error("Erro ao inicializar o Google Cast SDK: ", message);
+            document.getElementById('status').textContent = "Erro ao inicializar o Google Cast SDK.";
+        }
+
+        document.getElementById('power').addEventListener('click', function() {
+            if (castSession) {
+                console.log("Enviando comando de Power.");
+            } else {
+                alert("Não conectado a nenhum dispositivo.");
+            }
+        });
+
+        document.getElementById('volumeUp').addEventListener('click', function() {
+            if (castSession) {
+                console.log("Aumentando volume.");
+            } else {
+                alert("Não conectado a nenhum dispositivo.");
+            }
+        });
+
+        document.getElementById('volumeDown').addEventListener('click', function() {
+            if (castSession) {
+                console.log("Diminuindo volume.");
+            } else {
+                alert("Não conectado a nenhum dispositivo.");
+            }
+        });
+
+        document.getElementById('inputSource').addEventListener('click', function() {
+            if (castSession) {
+                console.log("Trocando Input/Source.");
+            } else {
+                alert("Não conectado a nenhum dispositivo.");
+            }
+        });
+
+        document.getElementById('assistant').addEventListener('click', function() {
+            if (castSession) {
+                console.log("Ativando Google Assistant.");
+            } else {
+                alert("Não conectado a nenhum dispositivo.");
+            }
+        });
+
+        // Iniciar a conexão com o dispositivo ao carregar a página
+        window.onload = connectToDevice;
+    </script>
+</body>
+</html>
